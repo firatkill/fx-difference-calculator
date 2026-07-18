@@ -39,6 +39,7 @@ function WorkspaceScreen() {
 
   const [zipBusy, setZipBusy] = useState(false);
   const [zipOutcome, setZipOutcome] = useState<ImportOutcome | null>(null);
+  const [exporting, setExporting] = useState(false);
   const [showPaymentForm, setShowPaymentForm] = useState(false);
   const [editingPaymentId, setEditingPaymentId] = useState<string | null>(null);
   const [showOpeningForm, setShowOpeningForm] = useState(false);
@@ -143,6 +144,26 @@ function WorkspaceScreen() {
             {workspace.openingBalance ? "Devir bakiyesi ✓" : "Devir bakiyesi"}
           </button>
           <UploadDropzone compact busy={zipBusy} onFile={handleExtraZip} />
+          <button
+            type="button"
+            disabled={exporting}
+            onClick={async () => {
+              setExporting(true);
+              try {
+                const { downloadWorkbook } = await import("@/lib/excel/export");
+                await downloadWorkbook(workspace!, result);
+              } catch (err) {
+                alert(
+                  `Excel oluşturulamadı: ${err instanceof Error ? err.message : String(err)}`,
+                );
+              } finally {
+                setExporting(false);
+              }
+            }}
+            className="rounded-lg bg-emerald-700 px-4 py-1.5 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-50"
+          >
+            {exporting ? "Hazırlanıyor…" : "Excel ⬇"}
+          </button>
         </div>
       </header>
 
