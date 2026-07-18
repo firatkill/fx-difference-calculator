@@ -1,7 +1,7 @@
 # Döviz Kuru Farkı Uygulaması — Geliştirme Planı
 
-> Durum: **ONAY BEKLİYOR** — Plan tamamlandı, implementasyon onayı bekleniyor.
-> Tarih: 2026-07-18
+> Durum: **TAMAMLANDI** — Plan onaylandı ve tüm fazlar implemente edildi (2026-07-18).
+> Doğrulama: 28 birim/e2e testi + gerçek veriyle tarayıcıda uçtan uca Playwright doğrulaması.
 
 ## 1. Amaç
 
@@ -316,14 +316,14 @@ docs/
 
 Her faz sonunda çalışır durum + commit:
 
-- [ ] **Faz 0 — İskelet:** Next.js + TS + Tailwind + vitest kurulumu, static export ayarı, boş sayfalar. `npm run dev` ve `npm test` çalışır.
-- [ ] **Faz 1 — Parser + Zip:** `lib/zip/extract.ts`, `lib/parser/ubl.ts`, fikstür scripti; 25 gerçek faturayla testler (alan eşlemesi tablodaki örnek değerleri birebir çıkarmalı).
-- [ ] **Faz 2 — FIFO motoru:** `lib/engine/fifo.ts` + bölüm 6'daki tüm kenar durum testleri. (UI'sız, saf fonksiyon.)
-- [ ] **Faz 3 — Ana akış UI:** yükleme → içe aktarma raporu → müşteri seçimi → tablo (kolonlar, renkler, yürüyen bakiye, satır genişletme) → özet paneli.
-- [ ] **Faz 4 — Ödeme & devir:** ödeme formu (TL/USD, canlı önizleme), devir bakiyesi formu, düzenle/sil, anlık yeniden hesap.
-- [ ] **Faz 5 — Kalıcılık:** Dexie şeması, workspace kaydet/aç/birleştir (ek zip), ana sayfada son çalışmalar.
-- [ ] **Faz 6 — Excel export:** iki sayfalı çıktı, stiller, sayı formatları.
-- [ ] **Faz 7 — Cila & doğrulama:** hesaba katılmayanlar bölümü, boş/hata durumları, gerçek fikstürle uçtan uca manuel doğrulama (özet rakamları elle hesaplanıp karşılaştırılır), README.
+- [x] **Faz 0 — İskelet:** Next.js + TS + Tailwind + vitest kurulumu, static export ayarı, boş sayfalar. `npm run dev` ve `npm test` çalışır.
+- [x] **Faz 1 — Parser + Zip:** `lib/zip/extract.ts`, `lib/parser/ubl.ts`, fikstür scripti; 25 gerçek faturayla testler (alan eşlemesi tablodaki örnek değerleri birebir çıkarmalı).
+- [x] **Faz 2 — FIFO motoru:** `lib/engine/fifo.ts` + bölüm 6'daki tüm kenar durum testleri. (UI'sız, saf fonksiyon.)
+- [x] **Faz 3 — Ana akış UI:** yükleme → içe aktarma raporu → müşteri seçimi → tablo (kolonlar, renkler, yürüyen bakiye, satır genişletme) → özet paneli.
+- [x] **Faz 4 — Ödeme & devir:** ödeme formu (TL/USD, canlı önizleme), devir bakiyesi formu, düzenle/sil, anlık yeniden hesap.
+- [x] **Faz 5 — Kalıcılık:** Dexie şeması, workspace kaydet/aç/birleştir (ek zip), ana sayfada son çalışmalar.
+- [x] **Faz 6 — Excel export:** iki sayfalı çıktı, stiller, sayı formatları.
+- [x] **Faz 7 — Cila & doğrulama:** hesaba katılmayanlar bölümü, boş/hata durumları, gerçek fikstürle uçtan uca manuel doğrulama (özet rakamları elle hesaplanıp karşılaştırılır), README.
 
 ## 12. Kapsam Dışı (bilinçli)
 
