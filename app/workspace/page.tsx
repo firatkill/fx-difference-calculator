@@ -5,7 +5,14 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/lib/db/schema";
-import { deletePayment, importIntoWorkspace } from "@/lib/db/repo";
+import {
+  addPayment,
+  deletePayment,
+  importIntoWorkspace,
+  setOpeningBalance,
+  updatePayment,
+  type PaymentInput,
+} from "@/lib/db/repo";
 import { compute } from "@/lib/engine/fifo";
 import { processZipFile, type ImportOutcome } from "@/lib/import";
 import SummaryBar from "@/components/SummaryBar";
@@ -13,6 +20,8 @@ import LedgerTable from "@/components/LedgerTable";
 import ExcludedList from "@/components/ExcludedList";
 import UploadDropzone from "@/components/UploadDropzone";
 import ImportReport from "@/components/ImportReport";
+import PaymentForm from "@/components/PaymentForm";
+import OpeningBalanceForm from "@/components/OpeningBalanceForm";
 
 function WorkspaceScreen() {
   const searchParams = useSearchParams();
@@ -30,6 +39,9 @@ function WorkspaceScreen() {
 
   const [zipBusy, setZipBusy] = useState(false);
   const [zipOutcome, setZipOutcome] = useState<ImportOutcome | null>(null);
+  const [showPaymentForm, setShowPaymentForm] = useState(false);
+  const [editingPaymentId, setEditingPaymentId] = useState<string | null>(null);
+  const [showOpeningForm, setShowOpeningForm] = useState(false);
 
   const result = useMemo(() => {
     if (!invoices || !payments) return null;
@@ -39,6 +51,18 @@ function WorkspaceScreen() {
       payments,
     });
   }, [workspace, invoices, payments]);
+
+  // devir için önerilen tarih: en eski faturadan bir gün önce
+  const suggestedOpeningDate = useMemo(() => {
+    const earliest = invoices
+      ?.filter((i) => !i.excluded)
+      .map((i) => i.issueDate)
+      .sort()[0];
+    if (!earliest) return "";
+    const d = new Date(`${earliest}T12:00:00`);
+    d.setDate(d.getDate() - 1);
+    return d.toISOString().slice(0, 10);
+  }, [invoices]);
 
   if (workspace === undefined || !result) {
     return <p className="p-10 text-center text-slate-500">Yükleniyor…</p>;
@@ -104,6 +128,20 @@ function WorkspaceScreen() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setShowPaymentForm(true)}
+            className="rounded-lg bg-green-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-green-700"
+          >
+            + Ödeme ekle
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowOpeningForm(true)}
+            className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100"
+          >
+            {workspace.openingBalance ? "Devir bakiyesi ✓" : "Devir bakiyesi"}
+          </button>
           <UploadDropzone compact busy={zipBusy} onFile={handleExtraZip} />
         </div>
       </header>
@@ -115,12 +153,46 @@ function WorkspaceScreen() {
       <div className="mt-6 space-y-4">
         <LedgerTable
           rows={result.rows}
+          onEditPayment={(paymentId) => setEditingPaymentId(paymentId)}
           onDeletePayment={async (paymentId) => {
             if (confirm("Bu ödeme silinsin mi?")) await deletePayment(paymentId);
           }}
         />
         {invoices && <ExcludedList invoices={invoices} />}
       </div>
+
+      {showPaymentForm && (
+        <PaymentForm
+          onCancel={() => setShowPaymentForm(false)}
+          onSave={async (input: PaymentInput) => {
+            await addPayment(id, input);
+            setShowPaymentForm(false);
+          }}
+        />
+      )}
+
+      {editingPaymentId && payments && (
+        <PaymentForm
+          initial={payments.find((p) => p.id === editingPaymentId)}
+          onCancel={() => setEditingPaymentId(null)}
+          onSave={async (input: PaymentInput) => {
+            await updatePayment(editingPaymentId, input);
+            setEditingPaymentId(null);
+          }}
+        />
+      )}
+
+      {showOpeningForm && (
+        <OpeningBalanceForm
+          initial={workspace.openingBalance}
+          suggestedDate={suggestedOpeningDate}
+          onCancel={() => setShowOpeningForm(false)}
+          onSave={async (opening) => {
+            await setOpeningBalance(id, opening);
+            setShowOpeningForm(false);
+          }}
+        />
+      )}
 
       {zipOutcome && (
         <ImportReport
