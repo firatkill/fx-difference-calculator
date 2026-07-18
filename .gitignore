@@ -1,0 +1,27 @@
+# dependencies
+/node_modules
+
+# next.js
+/.next/
+/out/
+
+# testing
+/coverage
+
+# misc
+.DS_Store
+*.pem
+npm-debug.log*
+
+# local env
+.env*
+
+# local npm config (alternatif cache yolu)
+.npmrc
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# üretilen test fikstürü
+/tests/fixtures/generated/
