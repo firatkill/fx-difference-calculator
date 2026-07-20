@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
-const nextConfig: NextConfig = {
-  output: "export",
-};
+// Middleware (oturum kontrolü) statik export ile çalışmaz; Vercel'de
+// normal (server) modda barındırılıyoruz. bkz. docs/plan-platform.md
+const nextConfig: NextConfig = {};
 
 export default nextConfig;

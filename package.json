@@ -12,6 +12,8 @@
     "make-fixture": "node scripts/make-fixture.mjs"
   },
   "dependencies": {
+    "@supabase/ssr": "^0.12.3",
+    "@supabase/supabase-js": "^2.110.7",
     "big.js": "^7.0.1",
     "dexie": "^4.4.4",
     "dexie-react-hooks": "^4.4.0",

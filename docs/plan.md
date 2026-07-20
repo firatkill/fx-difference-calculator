@@ -2,6 +2,9 @@
 
 > Durum: **TAMAMLANDI** — Plan onaylandı ve tüm fazlar implemente edildi (2026-07-18).
 > Doğrulama: 28 birim/e2e testi + gerçek veriyle tarayıcıda uçtan uca Playwright doğrulaması.
+>
+> **Not:** Bu MVP'nin çok kullanıcılı/authentication'lı platforma dönüşümü
+> için bkz. [docs/plan-platform.md](plan-platform.md).
 
 ## 1. Amaç
 
