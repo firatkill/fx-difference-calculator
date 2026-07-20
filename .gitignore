@@ -15,6 +15,7 @@ npm-debug.log*
 
 # local env
 .env*
+!.env.example
 
 # local npm config (alternatif cache yolu)
 .npmrc
