@@ -20,6 +20,9 @@ npm-debug.log*
 # local npm config (alternatif cache yolu)
 .npmrc
 
+# Supabase CLI yerel önbelleği
+/supabase/.temp/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

@@ -21,6 +21,7 @@ function SignInForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lockSeconds, setLockSeconds] = useState(0);
+  const [emailChanged, setEmailChanged] = useState(false);
 
   useEffect(() => {
     setLockSeconds(remainingLockSeconds());
@@ -28,6 +29,14 @@ function SignInForm() {
       setLockSeconds(remainingLockSeconds());
     }, 1000);
     return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    if (searchParams.get("emailChanged") === "1") {
+      setEmailChanged(true);
+      router.replace("/sign-in", { scroll: false });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -52,6 +61,13 @@ function SignInForm() {
     }
 
     clearThrottle();
+
+    const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    if (aal && aal.nextLevel === "aal2" && aal.currentLevel !== aal.nextLevel) {
+      router.push(`/mfa-challenge?next=${encodeURIComponent(next)}`);
+      return;
+    }
+
     router.push(next);
     router.refresh();
   }
@@ -63,6 +79,12 @@ function SignInForm() {
       <div className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
         <h1 className="text-xl font-bold text-slate-900">Döviz Kuru Farkı</h1>
         <p className="mt-1 text-sm text-slate-500">Devam etmek için giriş yapın.</p>
+
+        {emailChanged && (
+          <p className="mt-4 rounded-lg bg-green-50 px-3 py-2 text-sm text-green-700">
+            E-postanız güncellendi. Yeni e-postanızla giriş yapın.
+          </p>
+        )}
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
           <div>

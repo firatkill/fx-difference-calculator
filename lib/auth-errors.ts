@@ -7,11 +7,29 @@ export function translateAuthError(message: string): string {
   if (m.includes("email not confirmed")) {
     return "E-posta adresi doğrulanmamış.";
   }
+  if (
+    m.includes("invalid mfa factor") ||
+    m.includes("invalid factor") ||
+    m.includes("factor not found")
+  ) {
+    return "Doğrulama başarısız. Kod hatalı olabilir.";
+  }
+  if (
+    m.includes("invalid token") ||
+    m.includes("invalid otp") ||
+    m.includes("token has expired") ||
+    m.includes("otp expired")
+  ) {
+    return "Kod hatalı veya süresi dolmuş. Tekrar deneyin.";
+  }
+  if (m.includes("already registered") || m.includes("already in use")) {
+    return "Bu e-posta adresi zaten kullanılıyor.";
+  }
   if (m.includes("too many requests") || m.includes("rate limit")) {
     return "Çok fazla deneme yapıldı. Lütfen biraz bekleyip tekrar deneyin.";
   }
   if (m.includes("network")) {
     return "Bağlantı hatası. İnternet bağlantınızı kontrol edin.";
   }
-  return "Giriş yapılamadı. Bilgilerinizi kontrol edip tekrar deneyin.";
+  return "İşlem başarısız oldu. Bilgilerinizi kontrol edip tekrar deneyin.";
 }

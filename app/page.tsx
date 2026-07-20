@@ -1,11 +1,10 @@
-import AppHeader from "@/components/AppHeader";
+import AppShell from "@/components/AppShell";
 import HomeScreen from "@/components/HomeScreen";
 
 export default function HomePage() {
   return (
-    <>
-      <AppHeader />
+    <AppShell>
       <HomeScreen />
-    </>
+    </AppShell>
   );
 }

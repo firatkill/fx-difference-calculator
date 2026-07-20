@@ -1,4 +1,4 @@
-import AppHeader from "@/components/AppHeader";
+import AppShell from "@/components/AppShell";
 import CustomerScreen from "@/components/CustomerScreen";
 
 export default async function CustomerPage({
@@ -8,9 +8,8 @@ export default async function CustomerPage({
 }) {
   const { id } = await params;
   return (
-    <>
-      <AppHeader />
+    <AppShell>
       <CustomerScreen customerId={id} />
-    </>
+    </AppShell>
   );
 }
