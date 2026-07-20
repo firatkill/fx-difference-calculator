@@ -17,6 +17,7 @@ export function translateAuthError(message: string): string {
   if (
     m.includes("invalid token") ||
     m.includes("invalid otp") ||
+    m.includes("invalid totp") ||
     m.includes("token has expired") ||
     m.includes("otp expired")
   ) {
