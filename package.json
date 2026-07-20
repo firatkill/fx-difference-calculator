@@ -15,15 +15,12 @@
     "@supabase/ssr": "^0.12.3",
     "@supabase/supabase-js": "^2.110.7",
     "big.js": "^7.0.1",
-    "dexie": "^4.4.4",
-    "dexie-react-hooks": "^4.4.0",
     "exceljs": "^4.4.0",
     "fast-xml-parser": "^5.10.1",
     "fflate": "^0.8.3",
     "next": "^15.5.20",
     "react": "^19.2.7",
-    "react-dom": "^19.2.7",
-    "zustand": "^5.0.14"
+    "react-dom": "^19.2.7"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.3.3",

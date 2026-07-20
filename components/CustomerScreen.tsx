@@ -1,18 +1,19 @@
 "use client";
 
-import { Suspense, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import { useLiveQuery } from "dexie-react-hooks";
-import { db } from "@/lib/db/schema";
 import {
   addPayment,
   deletePayment,
-  importIntoWorkspace,
+  getCustomer,
+  importIntoCustomer,
+  listInvoices,
+  listPayments,
   setOpeningBalance,
   updatePayment,
   type PaymentInput,
-} from "@/lib/db/repo";
+} from "@/lib/supabase/repo";
+import type { Customer, Invoice, Payment } from "@/lib/types";
 import { compute } from "@/lib/engine/fifo";
 import { processZipFile, type ImportOutcome } from "@/lib/import";
 import SummaryBar from "@/components/SummaryBar";
@@ -23,19 +24,12 @@ import ImportReport from "@/components/ImportReport";
 import PaymentForm from "@/components/PaymentForm";
 import OpeningBalanceForm from "@/components/OpeningBalanceForm";
 
-function WorkspaceScreen() {
-  const searchParams = useSearchParams();
-  const id = searchParams.get("id") ?? "";
-
-  const workspace = useLiveQuery(() => db.workspaces.get(id), [id]);
-  const invoices = useLiveQuery(
-    () => db.invoices.where("workspaceId").equals(id).toArray(),
-    [id],
+export default function CustomerScreen({ customerId }: { customerId: string }) {
+  const [customer, setCustomer] = useState<Customer | null | undefined>(
+    undefined,
   );
-  const payments = useLiveQuery(
-    () => db.payments.where("workspaceId").equals(id).toArray(),
-    [id],
-  );
+  const [invoices, setInvoices] = useState<Invoice[] | null>(null);
+  const [payments, setPayments] = useState<Payment[] | null>(null);
 
   const [zipBusy, setZipBusy] = useState(false);
   const [zipOutcome, setZipOutcome] = useState<ImportOutcome | null>(null);
@@ -44,14 +38,29 @@ function WorkspaceScreen() {
   const [editingPaymentId, setEditingPaymentId] = useState<string | null>(null);
   const [showOpeningForm, setShowOpeningForm] = useState(false);
 
+  const reload = useCallback(async () => {
+    const [c, inv, pay] = await Promise.all([
+      getCustomer(customerId),
+      listInvoices(customerId),
+      listPayments(customerId),
+    ]);
+    setCustomer(c);
+    setInvoices(inv);
+    setPayments(pay);
+  }, [customerId]);
+
+  useEffect(() => {
+    reload();
+  }, [reload]);
+
   const result = useMemo(() => {
     if (!invoices || !payments) return null;
     return compute({
-      opening: workspace?.openingBalance,
+      opening: customer?.openingBalance,
       invoices,
       payments,
     });
-  }, [workspace, invoices, payments]);
+  }, [customer, invoices, payments]);
 
   // devir için önerilen tarih: en eski faturadan bir gün önce
   const suggestedOpeningDate = useMemo(() => {
@@ -65,13 +74,13 @@ function WorkspaceScreen() {
     return d.toISOString().slice(0, 10);
   }, [invoices]);
 
-  if (workspace === undefined || !result) {
+  if (customer === undefined || !result) {
     return <p className="p-10 text-center text-slate-500">Yükleniyor…</p>;
   }
-  if (workspace === null) {
+  if (customer === null) {
     return (
       <div className="p-10 text-center">
-        <p className="text-slate-600">Çalışma dosyası bulunamadı.</p>
+        <p className="text-slate-600">Müşteri bulunamadı.</p>
         <Link href="/" className="mt-2 inline-block text-blue-600 underline">
           ← Ana sayfaya dön
         </Link>
@@ -95,7 +104,7 @@ function WorkspaceScreen() {
   async function handleExtraZipConfirm(vkn: string) {
     const group = zipOutcome?.groups.find((g) => g.vkn === vkn);
     if (!group) return;
-    if (group.vkn !== workspace!.customerVkn) {
+    if (group.vkn !== customer!.customerVkn) {
       alert(
         `Seçilen müşteri (${group.name}) bu çalışmanın müşterisinden farklı. ` +
           `Farklı müşteri için ana sayfadan yeni çalışma açın.`,
@@ -103,8 +112,9 @@ function WorkspaceScreen() {
       return;
     }
     const { addedCount, alreadyExistingCount } =
-      await importIntoWorkspace(group);
+      await importIntoCustomer(group);
     setZipOutcome(null);
+    await reload();
     alert(
       `${addedCount} yeni fatura eklendi` +
         (alreadyExistingCount > 0
@@ -121,11 +131,11 @@ function WorkspaceScreen() {
             ← Ana sayfa
           </Link>
           <h1 className="mt-1 truncate text-2xl font-bold text-slate-900">
-            {workspace.customerName}
+            {customer.customerName}
           </h1>
           <p className="text-sm text-slate-500">
-            VKN {workspace.customerVkn}
-            {workspace.supplierName && <> · Satıcı: {workspace.supplierName}</>}
+            VKN {customer.customerVkn}
+            {customer.supplierName && <> · Satıcı: {customer.supplierName}</>}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -141,7 +151,7 @@ function WorkspaceScreen() {
             onClick={() => setShowOpeningForm(true)}
             className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100"
           >
-            {workspace.openingBalance ? "Devir bakiyesi ✓" : "Devir bakiyesi"}
+            {customer.openingBalance ? "Devir bakiyesi ✓" : "Devir bakiyesi"}
           </button>
           <UploadDropzone compact busy={zipBusy} onFile={handleExtraZip} />
           <button
@@ -151,7 +161,7 @@ function WorkspaceScreen() {
               setExporting(true);
               try {
                 const { downloadWorkbook } = await import("@/lib/excel/export");
-                await downloadWorkbook(workspace!, result);
+                await downloadWorkbook(customer!, result);
               } catch (err) {
                 alert(
                   `Excel oluşturulamadı: ${err instanceof Error ? err.message : String(err)}`,
@@ -176,7 +186,10 @@ function WorkspaceScreen() {
           rows={result.rows}
           onEditPayment={(paymentId) => setEditingPaymentId(paymentId)}
           onDeletePayment={async (paymentId) => {
-            if (confirm("Bu ödeme silinsin mi?")) await deletePayment(paymentId);
+            if (confirm("Bu ödeme silinsin mi?")) {
+              await deletePayment(paymentId);
+              await reload();
+            }
           }}
         />
         {invoices && <ExcludedList invoices={invoices} />}
@@ -186,8 +199,9 @@ function WorkspaceScreen() {
         <PaymentForm
           onCancel={() => setShowPaymentForm(false)}
           onSave={async (input: PaymentInput) => {
-            await addPayment(id, input);
+            await addPayment(customerId, input);
             setShowPaymentForm(false);
+            await reload();
           }}
         />
       )}
@@ -199,18 +213,20 @@ function WorkspaceScreen() {
           onSave={async (input: PaymentInput) => {
             await updatePayment(editingPaymentId, input);
             setEditingPaymentId(null);
+            await reload();
           }}
         />
       )}
 
       {showOpeningForm && (
         <OpeningBalanceForm
-          initial={workspace.openingBalance}
+          initial={customer.openingBalance}
           suggestedDate={suggestedOpeningDate}
           onCancel={() => setShowOpeningForm(false)}
           onSave={async (opening) => {
-            await setOpeningBalance(id, opening);
+            await setOpeningBalance(customerId, opening);
             setShowOpeningForm(false);
+            await reload();
           }}
         />
       )}
@@ -223,15 +239,5 @@ function WorkspaceScreen() {
         />
       )}
     </main>
-  );
-}
-
-export default function WorkspacePage() {
-  return (
-    <Suspense
-      fallback={<p className="p-10 text-center text-slate-500">Yükleniyor…</p>}
-    >
-      <WorkspaceScreen />
-    </Suspense>
   );
 }

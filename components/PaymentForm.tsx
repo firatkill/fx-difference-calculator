@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import Big from "big.js";
 import Modal from "@/components/Modal";
-import type { PaymentInput } from "@/lib/db/repo";
+import type { PaymentInput } from "@/lib/supabase/repo";
 import type { Payment } from "@/lib/types";
 import { big, formatTl, formatUsd, parseNumberInput, round2 } from "@/lib/money";
 import { todayIso } from "@/lib/dates";

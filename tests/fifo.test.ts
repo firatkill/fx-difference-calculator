@@ -26,7 +26,8 @@ function pay(over: Partial<Payment> = {}): Payment {
   paySeq++;
   return {
     id: `pay-${paySeq}`,
-    workspaceId: "w",
+    customerId: "c",
+    userId: "u",
     docNo: `ÖD-${String(paySeq).padStart(4, "0")}`,
     date: "2025-06-01",
     seq: paySeq,

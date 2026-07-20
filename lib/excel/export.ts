@@ -1,5 +1,5 @@
 import type { ComputeResult, LedgerRow } from "@/lib/engine/fifo";
-import type { Workspace } from "@/lib/types";
+import type { Customer } from "@/lib/types";
 
 /**
  * Cari hesap + mahsup detayını iki sayfalı .xlsx olarak üretir.
@@ -28,7 +28,7 @@ function num(value: string | undefined): number | undefined {
 }
 
 export async function buildWorkbookBlob(
-  workspace: Workspace,
+  customer: Customer,
   result: ComputeResult,
 ): Promise<Blob> {
   const ExcelJS = (await import("exceljs")).default;
@@ -38,9 +38,9 @@ export async function buildWorkbookBlob(
   // ── Sayfa 1: Cari Hesap ────────────────────────────────────────────
   const ws = wb.addWorksheet("Cari Hesap");
 
-  ws.addRow([workspace.customerName]).font = { bold: true, size: 14 };
-  ws.addRow([`VKN: ${workspace.customerVkn}`]);
-  if (workspace.supplierName) ws.addRow([`Satıcı: ${workspace.supplierName}`]);
+  ws.addRow([customer.customerName]).font = { bold: true, size: 14 };
+  ws.addRow([`VKN: ${customer.customerVkn}`]);
+  if (customer.supplierName) ws.addRow([`Satıcı: ${customer.supplierName}`]);
   const reportDateRow = ws.addRow([
     `Rapor tarihi: ${new Date().toLocaleDateString("tr-TR")}`,
   ]);
@@ -227,15 +227,15 @@ function slugify(name: string): string {
 }
 
 export async function downloadWorkbook(
-  workspace: Workspace,
+  customer: Customer,
   result: ComputeResult,
 ): Promise<void> {
-  const blob = await buildWorkbookBlob(workspace, result);
+  const blob = await buildWorkbookBlob(customer, result);
   const today = new Date().toISOString().slice(0, 10);
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `kur-farki_${slugify(workspace.customerName)}_${today}.xlsx`;
+  a.download = `kur-farki_${slugify(customer.customerName)}_${today}.xlsx`;
   a.click();
   URL.revokeObjectURL(url);
 }

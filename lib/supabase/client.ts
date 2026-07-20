@@ -4,10 +4,11 @@ import { createBrowserClient } from "@supabase/ssr";
 import { getSupabasePublishableKey, getSupabaseUrl } from "@/lib/supabase/env";
 
 /**
- * Tarayıcı Supabase istemcisi. Oturum çerezi olarak tutulur (middleware'in
- * okuyabilmesi için); "beni hatırla" tercihine göre çerez ömrü ayarlanır:
- * işaretliyse kalıcı (400 gün, Supabase varsayımı), değilse oturum çerezi
- * (tarayıcı kapanınca silinir).
+ * Tarayıcı Supabase istemcisi (tek örnek — modül başına bir tane, aksi halde
+ * her çağrı ayrı bir GoTrue oturum dinleyicisi oluşturur). Oturum çerezi
+ * olarak tutulur (middleware'in okuyabilmesi için); "beni hatırla" tercihine
+ * göre ilk oluşturulduğunda çerez ömrü ayarlanır: işaretliyse kalıcı (400 gün,
+ * Supabase varsayımı), değilse oturum çerezi (tarayıcı kapanınca silinir).
  */
 
 const REMEMBER_KEY = "dviz-remember-me";
@@ -23,11 +24,19 @@ export function setRememberMe(remember: boolean): void {
   window.localStorage.setItem(REMEMBER_KEY, remember ? "1" : "0");
 }
 
+let browserClient: ReturnType<typeof createBrowserClient> | undefined;
+
 export function createClient() {
+  if (browserClient) return browserClient;
   const persist = shouldPersist();
-  return createBrowserClient(getSupabaseUrl(), getSupabasePublishableKey(), {
-    cookieOptions: persist
-      ? { path: "/", sameSite: "lax", maxAge: PERSIST_MAX_AGE }
-      : { path: "/", sameSite: "lax" },
-  });
+  browserClient = createBrowserClient(
+    getSupabaseUrl(),
+    getSupabasePublishableKey(),
+    {
+      cookieOptions: persist
+        ? { path: "/", sameSite: "lax", maxAge: PERSIST_MAX_AGE }
+        : { path: "/", sameSite: "lax" },
+    },
+  );
+  return browserClient;
 }

@@ -1,7 +1,8 @@
 /**
- * Ortak veri modelleri (bkz. docs/plan.md bölüm 5).
+ * Ortak veri modelleri (bkz. docs/plan-platform.md bölüm 5).
  * Tüm parasal tutarlar kayan nokta hatasından kaçınmak için
  * nokta ondalıklı string olarak taşınır ve big.js ile işlenir.
+ * Supabase (Postgres) satırlarıyla eşlemesi lib/supabase/repo.ts'tedir.
  */
 
 export type ExcludeReason = "NON_USD" | "IADE" | "NO_RATE" | "PARSE_ERROR";
@@ -9,7 +10,8 @@ export type ExcludeReason = "NON_USD" | "IADE" | "NO_RATE" | "PARSE_ERROR";
 export interface Invoice {
   /** UBL UUID — mükerrer kontrolünde birincil anahtar */
   uuid: string;
-  workspaceId: string;
+  customerId: string;
+  userId: string;
   /** Belge no, örn. ORN2025000001638 */
   docNo: string;
   /** ISO tarih: YYYY-MM-DD */
@@ -35,12 +37,13 @@ export interface Invoice {
   sourcePath: string;
 }
 
-/** Parser çıktısı: henüz bir workspace'e atanmamış fatura */
-export type ParsedInvoice = Omit<Invoice, "workspaceId">;
+/** Parser çıktısı: henüz bir müşteriye atanmamış fatura */
+export type ParsedInvoice = Omit<Invoice, "customerId" | "userId">;
 
 export interface Payment {
   id: string;
-  workspaceId: string;
+  customerId: string;
+  userId: string;
   /** Otomatik belge no: ÖD-0001 */
   docNo: string;
   /** ISO tarih */
@@ -69,8 +72,10 @@ export interface OpeningBalance {
   rate?: string;
 }
 
-export interface Workspace {
+/** Bir kullanıcının takip ettiği müşteri cari defteri (eski adıyla "Workspace") */
+export interface Customer {
   id: string;
+  userId: string;
   customerVkn: string;
   customerName: string;
   supplierName?: string;
