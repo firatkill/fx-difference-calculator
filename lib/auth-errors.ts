@@ -26,6 +26,9 @@ export function translateAuthError(message: string): string {
   if (m.includes("already registered") || m.includes("already in use")) {
     return "Bu e-posta adresi zaten kullanılıyor.";
   }
+  if (m.includes("friendly name")) {
+    return "Bu isimde bir authenticator zaten var. Farklı bir isim seçin.";
+  }
   if (m.includes("too many requests") || m.includes("rate limit")) {
     return "Çok fazla deneme yapıldı. Lütfen biraz bekleyip tekrar deneyin.";
   }

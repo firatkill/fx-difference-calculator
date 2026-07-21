@@ -32,11 +32,13 @@ function svgToDataUri(svg: string): string {
  * iptal edilemez — admin için zorunlu kurulum) tarafından kullanılır.
  */
 export default function MfaEnrollFields({ onEnrolled, onCancel }: Props) {
+  const [name, setName] = useState("");
+  const [started, setStarted] = useState(false);
   const [factorId, setFactorId] = useState<string | null>(null);
   const [qrDataUri, setQrDataUri] = useState<string | null>(null);
   const [secret, setSecret] = useState<string | null>(null);
   const [code, setCode] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -44,41 +46,6 @@ export default function MfaEnrollFields({ onEnrolled, onCancel }: Props) {
   const factorIdRef = useRef<string | null>(null);
 
   useEffect(() => {
-    async function enroll() {
-      const supabase = createClient();
-
-      // Sayfa yenilenmesi/sekmeden ayrılma gibi sert navigasyonlarda
-      // component unmount temizliği çalışmaz, önceki denemeden kalan
-      // doğrulanmamış bir faktör olabilir — yeni enroll() çakışmasın diye
-      // (Supabase kullanıcı başına tek unverified TOTP'ye izin verir) önce
-      // temizlenir.
-      const { data: existing } = await supabase.auth.mfa.listFactors();
-      const staleUnverified = existing?.totp.find(
-        (f: Factor) => f.status === "unverified",
-      );
-      if (staleUnverified) {
-        await supabase.auth.mfa
-          .unenroll({ factorId: staleUnverified.id })
-          .catch(() => {});
-      }
-
-      const { data, error: enrollError } = await supabase.auth.mfa.enroll({
-        factorType: "totp",
-        friendlyName: "Authenticator",
-      });
-      if (enrollError) {
-        setError(translateAuthError(enrollError.message));
-        setLoading(false);
-        return;
-      }
-      factorIdRef.current = data.id;
-      setFactorId(data.id);
-      setQrDataUri(svgToDataUri(data.totp.qr_code));
-      setSecret(data.totp.secret);
-      setLoading(false);
-    }
-    enroll();
-
     return () => {
       // Doğrulanmadan ayrılındıysa yetim kaydı temizle
       if (!verifiedRef.current && factorIdRef.current) {
@@ -88,6 +55,48 @@ export default function MfaEnrollFields({ onEnrolled, onCancel }: Props) {
       }
     };
   }, []);
+
+  async function handleStart(e: React.FormEvent) {
+    e.preventDefault();
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    setError(null);
+    setLoading(true);
+    setStarted(true);
+
+    const supabase = createClient();
+
+    // Sayfa yenilenmesi/sekmeden ayrılma gibi sert navigasyonlarda
+    // component unmount temizliği çalışmaz, önceki denemeden kalan
+    // doğrulanmamış bir faktör olabilir — yeni enroll() çakışmasın diye
+    // (Supabase kullanıcı başına tek unverified TOTP'ye izin verir) önce
+    // temizlenir.
+    const { data: existing } = await supabase.auth.mfa.listFactors();
+    const staleUnverified = existing?.totp.find(
+      (f: Factor) => f.status === "unverified",
+    );
+    if (staleUnverified) {
+      await supabase.auth.mfa
+        .unenroll({ factorId: staleUnverified.id })
+        .catch(() => {});
+    }
+
+    const { data, error: enrollError } = await supabase.auth.mfa.enroll({
+      factorType: "totp",
+      friendlyName: trimmed,
+    });
+    if (enrollError) {
+      setError(translateAuthError(enrollError.message));
+      setLoading(false);
+      setStarted(false);
+      return;
+    }
+    factorIdRef.current = data.id;
+    setFactorId(data.id);
+    setQrDataUri(svgToDataUri(data.totp.qr_code));
+    setSecret(data.totp.secret);
+    setLoading(false);
+  }
 
   async function handleVerify(e: React.FormEvent) {
     e.preventDefault();
@@ -123,9 +132,55 @@ export default function MfaEnrollFields({ onEnrolled, onCancel }: Props) {
 
   return (
     <div className="space-y-4">
-      {loading && <p className="text-sm text-slate-500">Hazırlanıyor…</p>}
+      {!started && (
+        <form onSubmit={handleStart} className="space-y-3">
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700">
+              Bu authenticator için bir isim verin
+            </label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="ör. Telefonum"
+              className={inputClass}
+              autoFocus
+              required
+            />
+          </div>
 
-      {!loading && qrDataUri && (
+          {error && (
+            <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+              {error}
+            </p>
+          )}
+
+          <div className="flex justify-end gap-3 pt-2">
+            {onCancel && (
+              <button
+                type="button"
+                onClick={onCancel}
+                className="rounded-lg px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100"
+              >
+                Vazgeç
+              </button>
+            )}
+            <button
+              type="submit"
+              disabled={!name.trim()}
+              className="rounded-lg bg-blue-600 px-5 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-40"
+            >
+              Devam
+            </button>
+          </div>
+        </form>
+      )}
+
+      {started && loading && (
+        <p className="text-sm text-slate-500">Hazırlanıyor…</p>
+      )}
+
+      {started && !loading && qrDataUri && (
         <>
           <p className="text-sm text-slate-600">
             Google Authenticator, Authy gibi bir uygulamayla aşağıdaki QR
@@ -198,7 +253,7 @@ export default function MfaEnrollFields({ onEnrolled, onCancel }: Props) {
         </>
       )}
 
-      {!loading && !qrDataUri && (
+      {started && !loading && !qrDataUri && (
         <>
           {error && (
             <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">

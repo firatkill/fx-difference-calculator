@@ -3,45 +3,35 @@
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import MfaEnrollModal from "@/components/MfaEnrollModal";
+import MfaRemoveFactorModal from "@/components/MfaRemoveFactorModal";
 import type { Factor } from "@supabase/supabase-js";
 
 interface VerifiedFactor {
   id: string;
-  friendlyName?: string;
+  name: string;
 }
 
 export default function MfaSection() {
-  const [factor, setFactor] = useState<VerifiedFactor | null | undefined>(
+  const [factors, setFactors] = useState<VerifiedFactor[] | undefined>(
     undefined,
   );
   const [showEnroll, setShowEnroll] = useState(false);
-  const [removing, setRemoving] = useState(false);
+  const [removingFactor, setRemovingFactor] = useState<VerifiedFactor | null>(
+    null,
+  );
 
   const reload = useCallback(async () => {
     const supabase = createClient();
     const { data } = await supabase.auth.mfa.listFactors();
-    const verified =
-      data?.all.find((f: Factor) => f.status === "verified") ?? null;
-    setFactor(
-      verified
-        ? { id: verified.id, friendlyName: verified.friendly_name }
-        : null,
-    );
+    const verified = (data?.all ?? [])
+      .filter((f: Factor) => f.status === "verified")
+      .map((f: Factor) => ({ id: f.id, name: f.friendly_name || "Authenticator" }));
+    setFactors(verified);
   }, []);
 
   useEffect(() => {
     reload();
   }, [reload]);
-
-  async function handleRemove() {
-    if (!factor) return;
-    if (!confirm("MFA'yı kaldırmak istediğinize emin misiniz?")) return;
-    setRemoving(true);
-    const supabase = createClient();
-    await supabase.auth.mfa.unenroll({ factorId: factor.id });
-    setRemoving(false);
-    await reload();
-  }
 
   return (
     <section className="rounded-xl border border-slate-200 bg-white p-5">
@@ -49,37 +39,47 @@ export default function MfaSection() {
         İki Adımlı Doğrulama (MFA)
       </h2>
       <p className="mt-1 text-sm text-slate-500">
-        Authenticator uygulaması ile girişlerinize ekstra bir güvenlik
-        katmanı ekleyin.
+        Authenticator uygulamaları ile girişlerinize ekstra bir güvenlik
+        katmanı ekleyin. Birden fazla cihaz/uygulama ekleyebilirsiniz.
       </p>
 
-      <div className="mt-4">
-        {factor === undefined && (
+      <div className="mt-4 space-y-2">
+        {factors === undefined && (
           <p className="text-sm text-slate-400">Yükleniyor…</p>
         )}
-        {factor === null && (
-          <button
-            type="button"
-            onClick={() => setShowEnroll(true)}
-            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
-          >
-            MFA'yı Etkinleştir
-          </button>
+
+        {factors && factors.length === 0 && (
+          <p className="text-sm text-slate-500">
+            Henüz bir authenticator eklenmedi.
+          </p>
         )}
-        {factor && (
-          <div className="flex items-center gap-3">
-            <span className="rounded-full bg-green-100 px-3 py-1 text-sm font-medium text-green-700">
-              MFA Aktif ✓
+
+        {factors?.map((f) => (
+          <div
+            key={f.id}
+            className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2"
+          >
+            <span className="text-sm font-medium text-slate-700">
+              {f.name}
             </span>
             <button
               type="button"
-              disabled={removing}
-              onClick={handleRemove}
-              className="rounded-lg px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-40"
+              onClick={() => setRemovingFactor(f)}
+              className="rounded-lg px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-100"
             >
-              {removing ? "Kaldırılıyor…" : "Kaldır"}
+              Kaldır
             </button>
           </div>
+        ))}
+
+        {factors && (
+          <button
+            type="button"
+            onClick={() => setShowEnroll(true)}
+            className="mt-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+          >
+            + Yeni Authenticator Ekle
+          </button>
         )}
       </div>
 
@@ -88,6 +88,18 @@ export default function MfaSection() {
           onCancel={() => setShowEnroll(false)}
           onEnrolled={() => {
             setShowEnroll(false);
+            reload();
+          }}
+        />
+      )}
+
+      {removingFactor && (
+        <MfaRemoveFactorModal
+          factorId={removingFactor.id}
+          factorName={removingFactor.name}
+          onCancel={() => setRemovingFactor(null)}
+          onRemoved={() => {
+            setRemovingFactor(null);
             reload();
           }}
         />

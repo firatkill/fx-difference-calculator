@@ -7,14 +7,20 @@ import { translateAuthError } from "@/lib/auth-errors";
 import MfaEnrollFields from "@/components/MfaEnrollFields";
 import type { Factor } from "@supabase/supabase-js";
 
+interface VerifiedFactor {
+  id: string;
+  name: string;
+}
+
 function MfaChallengeForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const next = searchParams.get("next") || "/";
 
-  const [factorId, setFactorId] = useState<string | null | undefined>(
+  const [factors, setFactors] = useState<VerifiedFactor[] | undefined>(
     undefined,
   );
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
@@ -28,10 +34,11 @@ function MfaChallengeForm() {
         supabase.auth.mfa.listFactors(),
       ]);
       setIsAdmin(userData.user?.app_metadata?.role === "super-admin");
-      const verified = factorData?.all.find(
-        (f: Factor) => f.status === "verified",
-      );
-      setFactorId(verified?.id ?? null);
+      const verified = (factorData?.all ?? [])
+        .filter((f: Factor) => f.status === "verified")
+        .map((f: Factor) => ({ id: f.id, name: f.friendly_name || "Authenticator" }));
+      setFactors(verified);
+      setSelectedId(verified[0]?.id ?? null);
     }
     load();
   }, []);
@@ -43,13 +50,13 @@ function MfaChallengeForm() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!factorId || code.length !== 6) return;
+    if (!selectedId || code.length !== 6) return;
     setError(null);
     setLoading(true);
 
     const supabase = createClient();
     const { error: verifyError } = await supabase.auth.mfa.challengeAndVerify({
-      factorId,
+      factorId: selectedId,
       code,
     });
 
@@ -73,7 +80,7 @@ function MfaChallengeForm() {
     "w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-center text-lg tracking-widest focus:border-blue-500 focus:outline-none";
 
   // Sıfır faktörlü admin: zorunlu kurulum (iptal edilemez, "Vazgeç" yok)
-  if (factorId === null && isAdmin) {
+  if (factors !== undefined && factors.length === 0 && isAdmin) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
         <div className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
@@ -109,18 +116,36 @@ function MfaChallengeForm() {
           Authenticator uygulamanızdaki 6 haneli kodu girin.
         </p>
 
-        {factorId === undefined && (
+        {factors === undefined && (
           <p className="mt-6 text-sm text-slate-400">Yükleniyor…</p>
         )}
 
-        {factorId === null && (
+        {factors && factors.length === 0 && (
           <p className="mt-6 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
             Doğrulanmış bir MFA yöntemi bulunamadı. Lütfen tekrar giriş yapın.
           </p>
         )}
 
-        {factorId && (
+        {factors && factors.length > 0 && (
           <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+            {factors.length > 1 && (
+              <div>
+                <label className="mb-1 block text-sm font-medium text-slate-700">
+                  Kullanılacak authenticator
+                </label>
+                <select
+                  value={selectedId ?? ""}
+                  onChange={(e) => setSelectedId(e.target.value)}
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                >
+                  {factors.map((f) => (
+                    <option key={f.id} value={f.id}>
+                      {f.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
             <input
               type="text"
               inputMode="numeric"
