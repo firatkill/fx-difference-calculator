@@ -36,6 +36,17 @@ export function createClient() {
       cookieOptions: persist
         ? { path: "/", sameSite: "lax", maxAge: PERSIST_MAX_AGE }
         : { path: "/", sameSite: "lax" },
+      auth: {
+        // PKCE, isteği başlatan tarayıcıda bir code_verifier saklar; davet
+        // (admin tarafından, farklı bir tarayıcıdan gönderilir) ve şifre
+        // sıfırlama (farklı cihaz/tarayıcıdan açılabilir) bağlantıları bu
+        // yüzden "aynı tarayıcı" gerektirir. Ayrıca inviteUserByEmail zaten
+        // PKCE desteklemez ve implicit (hash-fragment token) bağlantı
+        // üretir — istemci pkce beklerken bunu tip uyuşmazlığı olarak
+        // reddediyordu. implicit'e geçmek her iki e-posta bağlantısını da
+        // tarayıcıdan bağımsız, kendi kendine yeten hale getiriyor.
+        flowType: "implicit",
+      },
     },
   );
   return browserClient;

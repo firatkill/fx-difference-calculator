@@ -7,11 +7,10 @@ import { translateAuthError } from "@/lib/auth-errors";
 
 /**
  * Davet ve şifre sıfırlama e-postalarının ortak varış sayfası. Kullanıcı
- * buraya bir imzalı bağlantıyla gelir (davet: hash-fragment token; şifre
- * sıfırlama: PKCE ?code=) — her iki durumda da tarayıcı istemcisi
- * (lib/supabase/client.ts, detectSessionInUrl açık) sayfa yüklenirken
- * bunu otomatik işleyip oturumu kurar; burada elle bir kod değişimi
- * yapmaya gerek yoktur.
+ * buraya bir imzalı bağlantıyla gelir (hash-fragment token — istemci
+ * bilerek implicit akışta, bkz. lib/supabase/client.ts) — tarayıcı
+ * istemcisi (detectSessionInUrl açık) sayfa yüklenirken bunu otomatik
+ * işleyip oturumu kurar; burada elle bir kod değişimi yapmaya gerek yoktur.
  *
  * Eski şifre adımı YOK: imzalı bağlantıyla gelmiş olmak zaten
  * yeniden-kimlik-doğrulamadır.
