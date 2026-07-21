@@ -7,10 +7,13 @@ import { translateAuthError } from "@/lib/auth-errors";
 
 /**
  * Davet ve şifre sıfırlama e-postalarının ortak varış sayfası. Kullanıcı
- * buraya bir imzalı bağlantıyla gelir (hash-fragment token — istemci
- * bilerek implicit akışta, bkz. lib/supabase/client.ts) — tarayıcı
- * istemcisi (detectSessionInUrl açık) sayfa yüklenirken bunu otomatik
- * işleyip oturumu kurar; burada elle bir kod değişimi yapmaya gerek yoktur.
+ * buraya bir imzalı bağlantıyla gelir — token her zaman hash-fragment
+ * (`#access_token=...&refresh_token=...`) biçimindedir (davet zaten PKCE
+ * desteklemez; şifre sıfırlama da bilerek implicit akışla gönderiliyor,
+ * bkz. app/sign-in/page.tsx). @supabase/ssr'nin tarayıcı istemcisi
+ * auth.flowType'ı dahili olarak her zaman "pkce" yaptığından bu token'ları
+ * otomatik algılayamıyor (bkz. lib/supabase/client.ts) — bu yüzden hash'i
+ * burada elle okuyup supabase.auth.setSession() ile oturumu kuruyoruz.
  *
  * Eski şifre adımı YOK: imzalı bağlantıyla gelmiş olmak zaten
  * yeniden-kimlik-doğrulamadır.
@@ -28,6 +31,27 @@ export default function SetPasswordScreen() {
   useEffect(() => {
     async function check() {
       const supabase = createClient();
+
+      const hash = new URLSearchParams(window.location.hash.slice(1));
+      const accessToken = hash.get("access_token");
+      const refreshToken = hash.get("refresh_token");
+
+      if (accessToken && refreshToken) {
+        const { error } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        });
+        window.history.replaceState(
+          window.history.state,
+          "",
+          window.location.pathname,
+        );
+        setReady(error ? "invalid" : "ok");
+        return;
+      }
+
+      // Hash yoksa (ör. sayfa yeniden yüklendi, hash zaten temizlendi) —
+      // zaten kurulmuş bir oturum var mı diye bak.
       const { data } = await supabase.auth.getUser();
       setReady(data.user ? "ok" : "invalid");
     }

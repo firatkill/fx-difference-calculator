@@ -2,7 +2,11 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { createClient, setRememberMe } from "@/lib/supabase/client";
+import {
+  createClient,
+  createPasswordResetRequestClient,
+  setRememberMe,
+} from "@/lib/supabase/client";
 import { translateAuthError } from "@/lib/auth-errors";
 import {
   clearThrottle,
@@ -79,7 +83,7 @@ function SignInForm() {
   async function handleForgotSubmit(e: React.FormEvent) {
     e.preventDefault();
     setForgotSending(true);
-    const supabase = createClient();
+    const supabase = createPasswordResetRequestClient();
     await supabase.auth.resetPasswordForEmail(forgotEmail.trim(), {
       redirectTo: `${window.location.origin}/set-password`,
     });

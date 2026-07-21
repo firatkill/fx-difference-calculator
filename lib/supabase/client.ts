@@ -1,6 +1,7 @@
 "use client";
 
 import { createBrowserClient } from "@supabase/ssr";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { getSupabasePublishableKey, getSupabaseUrl } from "@/lib/supabase/env";
 
 /**
@@ -29,6 +30,14 @@ let browserClient: ReturnType<typeof createBrowserClient> | undefined;
 export function createClient() {
   if (browserClient) return browserClient;
   const persist = shouldPersist();
+  // NOT: @supabase/ssr'nin createBrowserClient'ı auth.flowType'ı burada ne
+  // verilirse verilsin dahili olarak "pkce" ile EZER (bkz.
+  // node_modules/@supabase/ssr/dist/module/createBrowserClient.js) — bu
+  // yüzden davet/şifre sıfırlama bağlantılarının implicit (hash-fragment)
+  // token'larını bu istemciyle otomatik algılatmak mümkün değil. Bu
+  // istemci normal parola ile girişte ve oturumun çerezde tutulmasında
+  // kullanılmaya devam ediyor; imzalı bağlantıların işlenmesi
+  // components/SetPasswordScreen.tsx'te elle (setSession ile) yapılıyor.
   browserClient = createBrowserClient(
     getSupabaseUrl(),
     getSupabasePublishableKey(),
@@ -36,18 +45,25 @@ export function createClient() {
       cookieOptions: persist
         ? { path: "/", sameSite: "lax", maxAge: PERSIST_MAX_AGE }
         : { path: "/", sameSite: "lax" },
-      auth: {
-        // PKCE, isteği başlatan tarayıcıda bir code_verifier saklar; davet
-        // (admin tarafından, farklı bir tarayıcıdan gönderilir) ve şifre
-        // sıfırlama (farklı cihaz/tarayıcıdan açılabilir) bağlantıları bu
-        // yüzden "aynı tarayıcı" gerektirir. Ayrıca inviteUserByEmail zaten
-        // PKCE desteklemez ve implicit (hash-fragment token) bağlantı
-        // üretir — istemci pkce beklerken bunu tip uyuşmazlığı olarak
-        // reddediyordu. implicit'e geçmek her iki e-posta bağlantısını da
-        // tarayıcıdan bağımsız, kendi kendine yeten hale getiriyor.
-        flowType: "implicit",
-      },
     },
   );
   return browserClient;
+}
+
+/**
+ * Yalnızca resetPasswordForEmail çağrısı için: @supabase/ssr'nin tarayıcı
+ * istemcisi flowType'ı her zaman "pkce" yapar (yukarıdaki not), bu da
+ * bağlantıyı isteği başlatan tarayıcıya kilitler. Bu tek seferlik, çerezsiz
+ * istemci flowType'ı gerçekten "implicit" yapabildiğinden GoTrue davet
+ * bağlantısıyla aynı, kendi kendine yeten hash-fragment token'ı üretir.
+ */
+export function createPasswordResetRequestClient() {
+  return createSupabaseClient(getSupabaseUrl(), getSupabasePublishableKey(), {
+    auth: {
+      flowType: "implicit",
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+    },
+  });
 }
