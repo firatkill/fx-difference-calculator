@@ -28,3 +28,12 @@ export function getSupabasePublishableKey(): string {
 export function getSupabaseSecretKey(): string {
   return required("SUPABASE_SECRET_KEY", process.env.SUPABASE_SECRET_KEY);
 }
+
+/**
+ * Uygulamanın mutlak kök adresi (Server Action'lar gelen isteğin origin'ine
+ * middleware/Server Component'ler gibi doğrudan erişemez, bu yüzden
+ * redirectTo URL'leri için bu değişken gerekir).
+ */
+export function getSiteUrl(): string {
+  return required("NEXT_PUBLIC_SITE_URL", process.env.NEXT_PUBLIC_SITE_URL);
+}

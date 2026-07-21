@@ -20,17 +20,17 @@ import Big from "big.js";
 
 // ── Satır eşlemeleri ────────────────────────────────────────────────────────
 
-type Row = Record<string, unknown>;
+export type Row = Record<string, unknown>;
 
-function s(row: Row, key: string): string {
+export function s(row: Row, key: string): string {
   return row[key] as string;
 }
-function opt(row: Row, key: string): string | undefined {
+export function opt(row: Row, key: string): string | undefined {
   const v = row[key];
   return v == null ? undefined : (v as string);
 }
 
-function rowToCustomer(row: Row): Customer {
+export function rowToCustomer(row: Row): Customer {
   return {
     id: s(row, "id"),
     userId: s(row, "user_id"),
@@ -44,7 +44,7 @@ function rowToCustomer(row: Row): Customer {
   };
 }
 
-function rowToInvoice(row: Row): Invoice {
+export function rowToInvoice(row: Row): Invoice {
   const reason = opt(row, "excluded_reason");
   return {
     uuid: s(row, "uuid"),
@@ -68,7 +68,7 @@ function rowToInvoice(row: Row): Invoice {
   };
 }
 
-function rowToPayment(row: Row): Payment {
+export function rowToPayment(row: Row): Payment {
   return {
     id: s(row, "id"),
     customerId: s(row, "customer_id"),

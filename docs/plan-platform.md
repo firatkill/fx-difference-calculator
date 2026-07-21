@@ -281,8 +281,8 @@ gereklidir).
 ## 10. Kapsam Dışı (bilinçli)
 
 - Kullanıcı kayıt (signup) sayfası
-- Şifremi unuttum / e-posta ile sıfırlama akışı
-- Admin/yönetici rolü, kullanıcı yönetim paneli
+- ~~Şifremi unuttum / e-posta ile sıfırlama akışı~~ → **kapsam içine alındı**, /sign-in + /set-password ortak akışıyla eklendi
+- ~~Admin/yönetici rolü, kullanıcı yönetim paneli~~ → **kapsam içine alındı**, app_metadata.role tabanlı /admin paneli olarak eklendi
 - Paylaşımlı müşteri havuzu
 - Supabase Realtime ile çoklu sekme senkronizasyonu
 - IndexedDB'den Supabase'e veri taşıma aracı

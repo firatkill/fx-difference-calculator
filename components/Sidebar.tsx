@@ -1,16 +1,24 @@
 import Link from "next/link";
 import SignOutButton from "@/components/SignOutButton";
 
+export interface NavLink {
+  href: string;
+  label: string;
+}
+
 interface Props {
   open: boolean;
   userEmail: string;
+  links: NavLink[];
+  accountHref: string;
 }
 
 /**
  * Ekrana entegre (docked) sidebar — overlay değil. Sadece tıklanabilir
- * linkler içerir; müşteri listesi kaldırıldı, bkz. /customers sayfası.
+ * linkler içerir. Normal kullanıcı (AppShell) ve admin (AdminShell) farklı
+ * link setleri geçer, bileşen kopyalanmaz.
  */
-export default function Sidebar({ open, userEmail }: Props) {
+export default function Sidebar({ open, userEmail, links, accountHref }: Props) {
   if (!open) return null;
 
   return (
@@ -20,18 +28,15 @@ export default function Sidebar({ open, userEmail }: Props) {
       </div>
 
       <nav className="px-2 py-3">
-        <Link
-          href="/"
-          className="block rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
-        >
-          Ana Sayfa
-        </Link>
-        <Link
-          href="/customers"
-          className="block rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
-        >
-          Müşterilerim
-        </Link>
+        {links.map((link) => (
+          <Link
+            key={link.href}
+            href={link.href}
+            className="block rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
+          >
+            {link.label}
+          </Link>
+        ))}
       </nav>
 
       <div className="flex-1" />
@@ -39,7 +44,7 @@ export default function Sidebar({ open, userEmail }: Props) {
       <div className="border-t border-slate-200 p-3">
         <div className="truncate px-1 pb-2 text-xs text-slate-500">{userEmail}</div>
         <Link
-          href="/hesabim"
+          href={accountHref}
           className="block rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
         >
           Hesabım

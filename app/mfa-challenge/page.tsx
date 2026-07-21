@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { translateAuthError } from "@/lib/auth-errors";
+import MfaEnrollFields from "@/components/MfaEnrollFields";
 import type { Factor } from "@supabase/supabase-js";
 
 function MfaChallengeForm() {
@@ -14,6 +15,7 @@ function MfaChallengeForm() {
   const [factorId, setFactorId] = useState<string | null | undefined>(
     undefined,
   );
+  const [isAdmin, setIsAdmin] = useState(false);
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -21,14 +23,23 @@ function MfaChallengeForm() {
   useEffect(() => {
     async function load() {
       const supabase = createClient();
-      const result = await supabase.auth.mfa.listFactors();
-      const verified = result.data?.all.find(
+      const [{ data: userData }, { data: factorData }] = await Promise.all([
+        supabase.auth.getUser(),
+        supabase.auth.mfa.listFactors(),
+      ]);
+      setIsAdmin(userData.user?.app_metadata?.role === "super-admin");
+      const verified = factorData?.all.find(
         (f: Factor) => f.status === "verified",
       );
       setFactorId(verified?.id ?? null);
     }
     load();
   }, []);
+
+  function handleEnrolled() {
+    router.push(next);
+    router.refresh();
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -60,6 +71,33 @@ function MfaChallengeForm() {
 
   const inputClass =
     "w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-center text-lg tracking-widest focus:border-blue-500 focus:outline-none";
+
+  // Sıfır faktörlü admin: zorunlu kurulum (iptal edilemez, "Vazgeç" yok)
+  if (factorId === null && isAdmin) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
+        <div className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+          <h1 className="text-xl font-bold text-slate-900">
+            Zorunlu MFA Kurulumu
+          </h1>
+          <p className="mt-1 text-sm text-slate-500">
+            Yönetici hesapları için iki adımlı doğrulama zorunludur. Devam
+            etmeden önce kurulumu tamamlayın.
+          </p>
+          <div className="mt-6">
+            <MfaEnrollFields onEnrolled={handleEnrolled} />
+          </div>
+          <button
+            type="button"
+            onClick={handleSignOut}
+            className="mt-4 w-full text-center text-sm text-slate-500 hover:underline"
+          >
+            Çıkış yap
+          </button>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4">

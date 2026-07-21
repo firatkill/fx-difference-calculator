@@ -22,6 +22,10 @@ function SignInForm() {
   const [error, setError] = useState<string | null>(null);
   const [lockSeconds, setLockSeconds] = useState(0);
   const [emailChanged, setEmailChanged] = useState(false);
+  const [showForgot, setShowForgot] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotSending, setForgotSending] = useState(false);
+  const [forgotSent, setForgotSent] = useState(false);
 
   useEffect(() => {
     setLockSeconds(remainingLockSeconds());
@@ -72,6 +76,19 @@ function SignInForm() {
     router.refresh();
   }
 
+  async function handleForgotSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setForgotSending(true);
+    const supabase = createClient();
+    await supabase.auth.resetPasswordForEmail(forgotEmail.trim(), {
+      redirectTo: `${window.location.origin}/set-password`,
+    });
+    setForgotSending(false);
+    // Hesap var/yok fark etmeksizin aynı mesaj — e-posta numaralandırma
+    // saldırısını önlemek için standart pratik.
+    setForgotSent(true);
+  }
+
   const locked = lockSeconds > 0;
 
   return (
@@ -114,15 +131,56 @@ function SignInForm() {
             />
           </div>
 
-          <label className="flex items-center gap-2 text-sm text-slate-600">
-            <input
-              type="checkbox"
-              checked={remember}
-              onChange={(e) => setRemember(e.target.checked)}
-              className="h-4 w-4 rounded border-slate-300"
-            />
-            Beni hatırla
-          </label>
+          <div className="flex items-center justify-between">
+            <label className="flex items-center gap-2 text-sm text-slate-600">
+              <input
+                type="checkbox"
+                checked={remember}
+                onChange={(e) => setRemember(e.target.checked)}
+                className="h-4 w-4 rounded border-slate-300"
+              />
+              Beni hatırla
+            </label>
+            <button
+              type="button"
+              onClick={() => setShowForgot((v) => !v)}
+              className="text-sm text-blue-600 hover:underline"
+            >
+              Şifremi unuttum?
+            </button>
+          </div>
+
+          {showForgot && (
+            <div className="space-y-2 rounded-lg bg-slate-50 p-3">
+              {forgotSent ? (
+                <p className="text-sm text-green-700">
+                  E-posta gönderildiyse gelen kutunuzu kontrol edin.
+                </p>
+              ) : (
+                <>
+                  <label className="block text-sm font-medium text-slate-700">
+                    Şifre sıfırlama e-postası gönderilecek adres
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="email"
+                      value={forgotEmail}
+                      onChange={(e) => setForgotEmail(e.target.value)}
+                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                    />
+                    <button
+                      type="button"
+                      disabled={forgotSending || !forgotEmail.trim()}
+                      onClick={handleForgotSubmit}
+                      className="whitespace-nowrap rounded-lg bg-slate-700 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50"
+                    >
+                      {forgotSending ? "Gönderiliyor…" : "Gönder"}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
 
           {error && (
             <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
