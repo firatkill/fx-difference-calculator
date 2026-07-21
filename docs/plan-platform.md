@@ -287,5 +287,5 @@ gereklidir).
 - Supabase Realtime ile çoklu sekme senkronizasyonu
 - IndexedDB'den Supabase'e veri taşıma aracı
 - Ayrı dev/staging Supabase projesi
-- İki faktörlü kimlik doğrulama (2FA)
-- Zip'siz manuel müşteri oluşturma formu
+- ~~İki faktörlü kimlik doğrulama (2FA)~~ → **kapsam içine alındı**, TOTP MFA olarak eklendi (hesabım + girişte zorunlu kılma)
+- ~~Zip'siz manuel müşteri oluşturma formu~~ → **kapsam içine alındı**, "Yeni Müşteri" formuyla eklendi (bkz. layout/dashboard yeniden tasarımı)

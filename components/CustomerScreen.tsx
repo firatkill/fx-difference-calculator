@@ -15,14 +15,17 @@ import {
 } from "@/lib/supabase/repo";
 import type { Customer, Invoice, Payment } from "@/lib/types";
 import { compute } from "@/lib/engine/fifo";
-import { processZipFile, type ImportOutcome } from "@/lib/import";
+import { processZipFile } from "@/lib/import";
 import SummaryBar from "@/components/SummaryBar";
 import LedgerTable from "@/components/LedgerTable";
 import ExcludedList from "@/components/ExcludedList";
 import UploadDropzone from "@/components/UploadDropzone";
-import ImportReport from "@/components/ImportReport";
 import PaymentForm from "@/components/PaymentForm";
 import OpeningBalanceForm from "@/components/OpeningBalanceForm";
+
+interface ZipMismatch {
+  found: { vkn: string; name: string }[];
+}
 
 export default function CustomerScreen({ customerId }: { customerId: string }) {
   const [customer, setCustomer] = useState<Customer | null | undefined>(
@@ -32,7 +35,8 @@ export default function CustomerScreen({ customerId }: { customerId: string }) {
   const [payments, setPayments] = useState<Payment[] | null>(null);
 
   const [zipBusy, setZipBusy] = useState(false);
-  const [zipOutcome, setZipOutcome] = useState<ImportOutcome | null>(null);
+  const [zipError, setZipError] = useState<ZipMismatch | null>(null);
+  const [zipResultMsg, setZipResultMsg] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
   const [showPaymentForm, setShowPaymentForm] = useState(false);
   const [editingPaymentId, setEditingPaymentId] = useState<string | null>(null);
@@ -90,54 +94,41 @@ export default function CustomerScreen({ customerId }: { customerId: string }) {
 
   async function handleExtraZip(file: File) {
     setZipBusy(true);
+    setZipError(null);
+    setZipResultMsg(null);
     try {
-      setZipOutcome(await processZipFile(file));
-    } catch (err) {
-      alert(
-        `Zip işlenemedi: ${err instanceof Error ? err.message : String(err)}`,
+      const outcome = await processZipFile(file);
+      const match = outcome.groups.find((g) => g.vkn === customer!.customerVkn);
+      if (!match) {
+        setZipError({
+          found: outcome.groups
+            .filter((g) => g.vkn !== "?")
+            .map((g) => ({ vkn: g.vkn, name: g.name })),
+        });
+        return;
+      }
+      const { addedCount, alreadyExistingCount } = await importIntoCustomer(match);
+      await reload();
+      setZipResultMsg(
+        `${addedCount} yeni fatura eklendi` +
+          (alreadyExistingCount > 0
+            ? `, ${alreadyExistingCount} fatura zaten kayıtlıydı.`
+            : "."),
       );
+    } catch {
+      setZipError({ found: [] });
     } finally {
       setZipBusy(false);
     }
   }
 
-  async function handleExtraZipConfirm(vkn: string) {
-    const group = zipOutcome?.groups.find((g) => g.vkn === vkn);
-    if (!group) return;
-    if (group.vkn !== customer!.customerVkn) {
-      alert(
-        `Seçilen müşteri (${group.name}) bu çalışmanın müşterisinden farklı. ` +
-          `Farklı müşteri için ana sayfadan yeni çalışma açın.`,
-      );
-      return;
-    }
-    const { addedCount, alreadyExistingCount } =
-      await importIntoCustomer(group);
-    setZipOutcome(null);
-    await reload();
-    alert(
-      `${addedCount} yeni fatura eklendi` +
-        (alreadyExistingCount > 0
-          ? `, ${alreadyExistingCount} fatura zaten kayıtlıydı.`
-          : "."),
-    );
-  }
-
   return (
     <main className="mx-auto max-w-7xl px-6 py-8">
-      <header className="flex flex-wrap items-start justify-between gap-4">
-        <div className="min-w-0">
-          <Link href="/" className="text-sm text-blue-600 hover:underline">
-            ← Ana sayfa
-          </Link>
-          <h1 className="mt-1 truncate text-2xl font-bold text-slate-900">
-            {customer.customerName}
-          </h1>
-          <p className="text-sm text-slate-500">
-            VKN {customer.customerVkn}
-            {customer.supplierName && <> · Satıcı: {customer.supplierName}</>}
-          </p>
-        </div>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <p className="text-sm text-slate-500">
+          VKN {customer.customerVkn}
+          {customer.supplierName && <> · Satıcı: {customer.supplierName}</>}
+        </p>
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
@@ -175,7 +166,27 @@ export default function CustomerScreen({ customerId }: { customerId: string }) {
             {exporting ? "Hazırlanıyor…" : "Excel ⬇"}
           </button>
         </div>
-      </header>
+      </div>
+
+      {zipError && (
+        <div className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+          {zipError.found.length > 0 ? (
+            <>
+              Yüklenen zip bu müşteriyle eşleşmiyor. Bu müşteri:{" "}
+              <strong>{customer.customerName}</strong> (VKN{" "}
+              {customer.customerVkn}). Zip içinde bulunan:{" "}
+              {zipError.found.map((g) => `${g.name} (VKN ${g.vkn})`).join(", ")}.
+            </>
+          ) : (
+            "Zip işlenemedi veya okunabilir e-Fatura bulunamadı."
+          )}
+        </div>
+      )}
+      {zipResultMsg && (
+        <div className="mt-3 rounded-lg bg-green-50 px-3 py-2 text-sm text-green-700">
+          {zipResultMsg}
+        </div>
+      )}
 
       <div className="mt-6">
         <SummaryBar summary={result.summary} />
@@ -228,14 +239,6 @@ export default function CustomerScreen({ customerId }: { customerId: string }) {
             setShowOpeningForm(false);
             await reload();
           }}
-        />
-      )}
-
-      {zipOutcome && (
-        <ImportReport
-          outcome={zipOutcome}
-          onConfirm={handleExtraZipConfirm}
-          onCancel={() => setZipOutcome(null)}
         />
       )}
     </main>

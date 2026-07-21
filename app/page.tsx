@@ -1,10 +1,10 @@
 import AppShell from "@/components/AppShell";
-import HomeScreen from "@/components/HomeScreen";
+import DashboardScreen from "@/components/DashboardScreen";
 
 export default function HomePage() {
   return (
-    <AppShell>
-      <HomeScreen />
+    <AppShell title="Ana Sayfa" breadcrumb={[]}>
+      <DashboardScreen />
     </AppShell>
   );
 }

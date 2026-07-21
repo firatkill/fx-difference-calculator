@@ -253,6 +253,35 @@ export async function importIntoCustomer(group: {
   };
 }
 
+/** Zip'siz, manuel müşteri oluşturma ("Yeni Müşteri" formu) */
+export async function createCustomer(input: {
+  vkn: string;
+  name: string;
+  supplierName?: string;
+}): Promise<Customer> {
+  const supabase = createClient();
+  const userId = await currentUserId(supabase);
+
+  const { data, error } = await supabase
+    .from("customers")
+    .insert({
+      user_id: userId,
+      customer_vkn: input.vkn,
+      customer_name: input.name,
+      supplier_name: input.supplierName ?? null,
+    })
+    .select()
+    .single();
+
+  if (error) {
+    if (error.code === "23505") {
+      throw new Error(`Bu VKN (${input.vkn}) ile zaten bir müşteri kayıtlı.`);
+    }
+    throw new Error(error.message);
+  }
+  return rowToCustomer(data);
+}
+
 export async function deleteCustomer(id: string): Promise<void> {
   const supabase = createClient();
   // invoices/payments FK "on delete cascade" ile otomatik silinir

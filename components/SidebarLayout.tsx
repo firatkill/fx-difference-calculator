@@ -2,28 +2,33 @@
 
 import { useState } from "react";
 import Sidebar from "@/components/Sidebar";
+import Header, { type Crumb } from "@/components/Header";
 
 export default function SidebarLayout({
   userEmail,
+  title,
+  breadcrumb,
   children,
 }: {
   userEmail: string;
+  title: string;
+  breadcrumb: Crumb[];
   children: React.ReactNode;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(true);
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        aria-label="Menüyü aç"
-        className="fixed left-4 top-4 z-30 rounded-lg border border-slate-200 bg-white p-2 text-slate-600 shadow-sm hover:bg-slate-100"
-      >
-        ☰
-      </button>
-      <Sidebar open={open} onClose={() => setOpen(false)} userEmail={userEmail} />
-      <div className="pt-14">{children}</div>
+    <div className="flex min-h-screen bg-slate-50">
+      <Sidebar open={open} userEmail={userEmail} />
+      <div className="flex min-w-0 flex-1 flex-col">
+        <Header
+          title={title}
+          breadcrumb={breadcrumb}
+          open={open}
+          onToggle={() => setOpen((o) => !o)}
+        />
+        <div className="flex-1">{children}</div>
+      </div>
     </div>
   );
 }

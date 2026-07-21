@@ -3,7 +3,7 @@ import HesabimScreen from "@/components/HesabimScreen";
 
 export default function HesabimPage() {
   return (
-    <AppShell>
+    <AppShell title="Hesabım" breadcrumb={[{ label: "Ana Sayfa", href: "/" }]}>
       <HesabimScreen />
     </AppShell>
   );
