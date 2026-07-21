@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { translateAuthError } from "@/lib/auth-errors";
+import type { Factor } from "@supabase/supabase-js";
 
 interface Props {
   onEnrolled: () => void;
@@ -10,8 +11,17 @@ interface Props {
   onCancel?: () => void;
 }
 
-/** Ham SVG string'i tarayıcıda <img> ile gösterilebilir bir data URI'ye çevirir */
+/**
+ * qr_code'u tarayıcıda <img> ile gösterilebilir bir URI'ye çevirir.
+ * Supabase'in auth-js tip tanımları alanın HAM SVG olduğunu ve
+ * "data:image/svg+xml;utf-8," önekinin elle eklenmesi gerektiğini söylüyor,
+ * ANCAK gerçek çalışma zamanında (bu projede gözlemlendi) alan zaten bu
+ * önekle birlikte tam bir data URI olarak geliyor. Her iki durumu da
+ * güvenle ele almak için: zaten "data:" ile başlıyorsa olduğu gibi
+ * kullanılır, başlamıyorsa (ham SVG ise) base64 data URI'ye sarılır.
+ */
 function svgToDataUri(svg: string): string {
+  if (svg.startsWith("data:")) return svg;
   return `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svg)))}`;
 }
 
@@ -44,7 +54,7 @@ export default function MfaEnrollFields({ onEnrolled, onCancel }: Props) {
       // temizlenir.
       const { data: existing } = await supabase.auth.mfa.listFactors();
       const staleUnverified = existing?.totp.find(
-        (f) => f.status === "unverified",
+        (f: Factor) => f.status === "unverified",
       );
       if (staleUnverified) {
         await supabase.auth.mfa
