@@ -67,12 +67,12 @@ Aşağıdakiler sorulmadan verilen makul varsayımlardır; herhangi birine itira
 
 ## 4. Alan Eşlemesi (UBL-TR → uygulama)
 
-Örnek dosya: `docs/invoice_example/f516dcdd-….xml` (UBL 2.1, `TR1.2`, profil `TEMELFATURA`, tip `TEVKIFAT`)
+Örnek dosya: sentetik, `scripts/synthetic-invoices.mjs` (`EXAMPLE_INVOICE`) (UBL 2.1, `TR1.2`, profil `TEMELFATURA`, tip `TEVKIFAT`)
 
 | Uygulama alanı | XML kaynağı | Örnek değer |
 |---|---|---|
 | Belge no | `Invoice/cbc:ID` | `ORN2025000001638` |
-| Tekil anahtar | `cbc:UUID` | `f516dcdd-…` |
+| Tekil anahtar | `cbc:UUID` | `a1b2c3d4-…` |
 | Fatura tarihi | `cbc:IssueDate` | `2025-08-01` |
 | Fatura tipi | `cbc:InvoiceTypeCode` | `TEVKIFAT` (İADE ise dışlanır) |
 | Para birimi | `cbc:DocumentCurrencyCode` | `USD` (değilse dışlanır) |
@@ -215,7 +215,7 @@ Sonra → müşteri (VKN) grupları listelenir → seçilen müşteriyle workspa
 ```
 
 - Büyük zip'lerde ilerleme çubuğu (n/toplam); parse ana thread'i kilitlememek için parça parça (yield) yapılır.
-- Test fikstürü: `docs/invoice_zip_example/` klasöründen dış zip üretilir (`scripts/make-fixture.mjs`)
+- Test fikstürü: sentetik faturalardan dış zip üretilir (`scripts/synthetic-invoices.mjs`, `scripts/make-fixture.mjs`)
   ve gerçek 25 faturayla uçtan uca test edilir.
 
 ## 8. Arayüz
@@ -308,7 +308,7 @@ lib/
   db/schema.ts, db/repo.ts        # dexie
   money.ts                        # Big yardımcıları + tr-TR format/parse
 scripts/
-  make-fixture.mjs                # docs/invoice_zip_example → test dış zip'i
+  make-fixture.mjs                # sentetik faturalar → test dış zip'i
 tests/
   parser.test.ts  fifo.test.ts  extract.test.ts  e2e-fixture.test.ts
 docs/

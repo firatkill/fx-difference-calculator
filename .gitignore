@@ -29,3 +29,9 @@ next-env.d.ts
 
 # üretilen test fikstürü
 /tests/fixtures/generated/
+
+# never commit real invoices
+docs/invoice_example/
+docs/invoice_zip_example/
+*.zip
+!tests/fixtures/**/*.zip

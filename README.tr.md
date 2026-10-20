@@ -81,7 +81,7 @@ Giriş yaptıktan sonra **Hesabım** sayfasından şifre değiştirilebilir.
 npm run dev            # http://localhost:3000
 npm test               # motor + parser birim testleri (vitest)
 npm run build          # production build
-npm run make-fixture   # docs örneklerinden test zip'i üret
+npm run make-fixture   # sentetik örnek faturalardan test zip'i üret
 ```
 
 ## Deploy (Vercel)

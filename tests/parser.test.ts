@@ -1,20 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import { parseUblInvoice, parseInvoiceBatch } from "@/lib/parser/ubl";
+import { EXAMPLE_INVOICE, syntheticInvoiceXml } from "../scripts/synthetic-invoices.mjs";
 
-const exampleXml = readFileSync(
-  join(
-    __dirname,
-    "..",
-    "docs",
-    "invoice_example",
-    "a1b2c3d4-0000-4000-8000-000000000001.xml",
-  ),
-  "utf-8",
-);
+// Gerçek faturaların yapısını taklit eden sentetik örnek (imza bloğu, gömülü
+// XSLT, tevkifat, notta vade tarihi); bkz. scripts/synthetic-invoices.mjs
+const exampleXml = syntheticInvoiceXml(EXAMPLE_INVOICE);
 
-describe("parseUblInvoice — gerçek örnek fatura", () => {
+describe("parseUblInvoice — örnek fatura", () => {
   const inv = parseUblInvoice(exampleXml, "2025/08/ORN2025000001638.zip!/f.xml");
 
   it("plan bölüm 4'teki alan eşlemesini birebir çıkarır", () => {
